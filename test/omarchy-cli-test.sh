@@ -310,6 +310,7 @@ cat >"$PKG_STUB_DIR/sudo" <<'SH'
 
 case "${1:-}" in
   -v)
+    printf 'validate\n' >>"$PKG_TEST_DIR/sudo-validate.log"
     exit "${SUDO_VALIDATE_STATUS:-0}"
     ;;
   -n)
@@ -339,6 +340,7 @@ rm -f "$PKG_TEST_DIR"/*.log
 if SUDO_VALIDATE_STATUS=1 "$ROOT/bin/omarchy-pkg-install"; then
   fail "pkg install should exit non-zero when sudo validation fails"
 fi
+[[ -f $PKG_TEST_DIR/sudo-validate.log ]] || fail "pkg install should reach sudo validation"
 [[ ! -f $PKG_TEST_DIR/pacman-install.log ]] || fail "pkg install should not run pacman after sudo validation failure"
 [[ ! -f $PKG_TEST_DIR/show-done.log ]] || fail "pkg install should not show done after sudo validation failure"
 pass "pkg install aborts cleanly when sudo validation fails"
@@ -347,6 +349,7 @@ rm -f "$PKG_TEST_DIR"/*.log
 if SUDO_VALIDATE_STATUS=1 "$ROOT/bin/omarchy-pkg-aur-install"; then
   fail "aur install should exit non-zero when sudo validation fails"
 fi
+[[ -f $PKG_TEST_DIR/sudo-validate.log ]] || fail "aur install should reach sudo validation"
 [[ ! -f $PKG_TEST_DIR/yay-install.log ]] || fail "aur install should not run yay after sudo validation failure"
 [[ ! -f $PKG_TEST_DIR/updatedb.log ]] || fail "aur install should not run updatedb after sudo validation failure"
 [[ ! -f $PKG_TEST_DIR/show-done.log ]] || fail "aur install should not show done after sudo validation failure"
