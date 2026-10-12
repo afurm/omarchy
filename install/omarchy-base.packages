@@ -99,6 +99,7 @@ omacalc
 omacut
 omawrite
 omarchy-nvim
+omarchy-hyprland-titlebars
 omasnap
 # OWE owns desktop video backgrounds and feeds the lock screen its frames.
 owe
@@ -125,6 +126,7 @@ quickshell
 ripgrep
 ruby
 sddm
+signed
 slurp
 socat
 starship
@@ -144,7 +146,6 @@ udiskie
 ufw
 ufw-docker
 unzip
-usbguard
 usage
 uwsm
 vi
@@ -157,7 +158,6 @@ woff2-font-awesome
 xdg-desktop-portal-gtk
 xdg-desktop-portal-hyprland
 xdg-terminal-exec
-xournalpp
 yaru-icon-theme
 yay
 yt-dlp
