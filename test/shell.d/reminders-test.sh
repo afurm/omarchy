@@ -62,7 +62,7 @@ STUB
 chmod +x "$reminder_tmp/bin"/*
 
 reminder() {
-  PATH="$reminder_tmp/bin:$PATH" XDG_STATE_HOME="$reminder_tmp/state" \
+  PATH="$reminder_tmp/bin:$ROOT/bin:$PATH" OMARCHY_PATH="$ROOT" XDG_STATE_HOME="$reminder_tmp/state" \
     REMINDER_TEST_LOG="$reminder_tmp/runs" REMINDER_TEST_ACTIVE="${REMINDER_TEST_ACTIVE:-none}" \
     REMINDER_TEST_NOTIFY_LOG="$reminder_tmp/notifications" REMINDER_TEST_FIRE="${REMINDER_TEST_FIRE:-}" \
     "$ROOT/bin/omarchy-reminder" "$@"
