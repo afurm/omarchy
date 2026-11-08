@@ -257,7 +257,12 @@ if [[ -n $custom_message ]]; then
   confirmation_title=$(omarchy-i18n --count "$minutes" reminder.customInMinutes "$custom_message" "$minutes")
 fi
 
-arm_reminder "$unit" $((minutes * 60)) "$message"
+# Without a timer, the record would only make a later restore fire a reminder
+# that was never set.
+if ! arm_reminder "$unit" $((minutes * 60)) "$message"; then
+  rm -f "$reminder_dir/$unit.due" "$message_file"
+  exit 1
+fi
 
 refresh_indicator
 omarchy-notification-send -g 󰢌 "$confirmation_title" "$confirmation"

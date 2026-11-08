@@ -44,10 +44,12 @@ cat >"$reminder_tmp/bin/omarchy-notification-send" <<'STUB'
 printf '%s\n' "$*" >>"$REMINDER_TEST_NOTIFY_LOG"
 STUB
 # Logs the timer it was asked to start; with REMINDER_TEST_FIRE set it also runs
-# the timer's payload right away, as if the timer had elapsed.
+# the timer's payload right away, as if the timer had elapsed, and with
+# REMINDER_TEST_RUN_FAIL set it fails.
 cat >"$reminder_tmp/bin/systemd-run" <<'STUB'
 #!/bin/bash
 printf '%s\n' "$*" >>"$REMINDER_TEST_LOG"
+[[ -z ${REMINDER_TEST_RUN_FAIL:-} ]] || exit 1
 if [[ -n $REMINDER_TEST_FIRE ]]; then
   while (($#)) && [[ $1 != bash ]]; do shift; done
   "$@"
@@ -90,6 +92,13 @@ fi
 compgen -G "$store/omarchy-reminder-7m-*.due" >/dev/null && fail "setting a reminder waits for the reminders lock" "it stored a record while the lock was held"
 wait "$locker"
 pass "setting a reminder waits for the reminders lock"
+
+# A reminder whose timer could not be started leaves no record behind.
+if REMINDER_TEST_RUN_FAIL=1 reminder 8 "Tea" >/dev/null 2>&1; then
+  fail "setting a reminder fails when its timer can't be started"
+fi
+compgen -G "$store/omarchy-reminder-8m-*" >/dev/null && fail "a reminder whose timer failed leaves no record" "$(ls "$store")"
+pass "a reminder whose timer failed leaves no record"
 
 rm -rf "$store" "$reminder_tmp/runs"
 mkdir -p "$store"
