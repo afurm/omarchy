@@ -171,7 +171,7 @@ restore_reminders() {
     if [[ -f $reminder_dir/$unit.message ]]; then
       message=$(<"$reminder_dir/$unit.message")
     else
-      message="Your ${minutes} minutes are up"
+      message=$(omarchy-i18n --count "$minutes" reminder.minutesUp "$minutes")
     fi
 
     delay=$((due - now))

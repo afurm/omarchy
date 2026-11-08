@@ -90,6 +90,7 @@ echo "$((now + 60)) 2" >"$store/omarchy-reminder-2m-3000.due"
 echo "garbage" >"$store/omarchy-reminder-1m-4000.due"
 # The default message comes from the stored minutes, not the unit name.
 echo "$((now + 1800)) 30" >"$store/omarchy-reminder-30-1700000000-12345.due"
+echo "$((now + 600)) 1" >"$store/omarchy-reminder-1m-5000.due"
 REMINDER_TEST_ACTIVE=omarchy-reminder-2m-3000.timer reminder restore
 
 grep -Eq -- "--on-active=(359[0-9]|3600)s --unit=omarchy-reminder-90m-1000 .*Your 90 minutes are up" "$reminder_tmp/runs" ||
@@ -99,6 +100,10 @@ pass "restore re-arms a pending reminder for its remaining time"
 grep -Eq -- "--on-active=(179[0-9]|1800)s --unit=omarchy-reminder-30-1700000000-12345 .*Your 30 minutes are up" "$reminder_tmp/runs" ||
   fail "restore builds the default message from the stored minutes"
 pass "restore builds the default message from the stored minutes"
+
+grep -q -- "--unit=omarchy-reminder-1m-5000 .*Your 1 minute is up" "$reminder_tmp/runs" ||
+  fail "restore takes the default message from the catalog"
+pass "restore takes the default message from the catalog"
 
 grep -q -- "--on-active=1s --unit=omarchy-reminder-5m-2000 .*Stand up" "$reminder_tmp/runs" ||
   fail "restore fires an overdue reminder right away with its message"
