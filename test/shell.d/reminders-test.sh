@@ -80,6 +80,17 @@ read -r due due_minutes <"$due_file"
 grep -q -- "--on-active=600s" "$reminder_tmp/runs" || fail "setting a reminder arms a ten-minute timer"
 pass "setting a reminder stores its absolute due time and message"
 
+# Setting waits for the lock that restore and clear hold.
+flock "$store/.lock" sleep 3 &
+locker=$!
+sleep 0.5
+if timeout 1 bash -c "$(declare -f reminder); ROOT='$ROOT' reminder_tmp='$reminder_tmp' reminder 7" >/dev/null 2>&1; then
+  fail "setting a reminder waits for the reminders lock" "it went ahead while the lock was held"
+fi
+compgen -G "$store/omarchy-reminder-7m-*.due" >/dev/null && fail "setting a reminder waits for the reminders lock" "it stored a record while the lock was held"
+wait "$locker"
+pass "setting a reminder waits for the reminders lock"
+
 rm -rf "$store" "$reminder_tmp/runs"
 mkdir -p "$store"
 now=$(date +%s)
