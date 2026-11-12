@@ -44,10 +44,12 @@ cat >"$reminder_tmp/bin/omarchy-notification-send" <<'STUB'
 printf '%s\n' "$*" >>"$REMINDER_TEST_NOTIFY_LOG"
 STUB
 # Logs the timer it was asked to start; with REMINDER_TEST_FIRE set it also runs
-# the timer's payload right away, as if the timer had elapsed.
+# the timer's payload right away, as if the timer had elapsed, and with
+# REMINDER_TEST_RUN_FAIL set it fails.
 cat >"$reminder_tmp/bin/systemd-run" <<'STUB'
 #!/bin/bash
 printf '%s\n' "$*" >>"$REMINDER_TEST_LOG"
+[[ -z ${REMINDER_TEST_RUN_FAIL:-} ]] || exit 1
 if [[ -n $REMINDER_TEST_FIRE ]]; then
   while (($#)) && [[ $1 != bash ]]; do shift; done
   "$@"
@@ -80,6 +82,24 @@ read -r due due_minutes <"$due_file"
 grep -q -- "--on-active=600s" "$reminder_tmp/runs" || fail "setting a reminder arms a ten-minute timer"
 pass "setting a reminder stores its absolute due time and message"
 
+# Setting waits for the lock that restore and clear hold.
+flock "$store/.lock" sleep 3 &
+locker=$!
+sleep 0.5
+if timeout 1 bash -c "$(declare -f reminder); ROOT='$ROOT' reminder_tmp='$reminder_tmp' reminder 7" >/dev/null 2>&1; then
+  fail "setting a reminder waits for the reminders lock" "it went ahead while the lock was held"
+fi
+compgen -G "$store/omarchy-reminder-7m-*.due" >/dev/null && fail "setting a reminder waits for the reminders lock" "it stored a record while the lock was held"
+wait "$locker"
+pass "setting a reminder waits for the reminders lock"
+
+# A reminder whose timer could not be started leaves no record behind.
+if REMINDER_TEST_RUN_FAIL=1 reminder 8 "Tea" >/dev/null 2>&1; then
+  fail "setting a reminder fails when its timer can't be started"
+fi
+compgen -G "$store/omarchy-reminder-8m-*" >/dev/null && fail "a reminder whose timer failed leaves no record" "$(ls "$store")"
+pass "a reminder whose timer failed leaves no record"
+
 rm -rf "$store" "$reminder_tmp/runs"
 mkdir -p "$store"
 now=$(date +%s)
@@ -90,6 +110,7 @@ echo "$((now + 60)) 2" >"$store/omarchy-reminder-2m-3000.due"
 echo "garbage" >"$store/omarchy-reminder-1m-4000.due"
 # The default message comes from the stored minutes, not the unit name.
 echo "$((now + 1800)) 30" >"$store/omarchy-reminder-30-1700000000-12345.due"
+echo "$((now + 600)) 1" >"$store/omarchy-reminder-1m-5000.due"
 REMINDER_TEST_ACTIVE=omarchy-reminder-2m-3000.timer reminder restore
 
 grep -Eq -- "--on-active=(359[0-9]|3600)s --unit=omarchy-reminder-90m-1000 .*Your 90 minutes are up" "$reminder_tmp/runs" ||
@@ -99,6 +120,10 @@ pass "restore re-arms a pending reminder for its remaining time"
 grep -Eq -- "--on-active=(179[0-9]|1800)s --unit=omarchy-reminder-30-1700000000-12345 .*Your 30 minutes are up" "$reminder_tmp/runs" ||
   fail "restore builds the default message from the stored minutes"
 pass "restore builds the default message from the stored minutes"
+
+grep -q -- "--unit=omarchy-reminder-1m-5000 .*Your 1 minute is up" "$reminder_tmp/runs" ||
+  fail "restore takes the default message from the catalog"
+pass "restore takes the default message from the catalog"
 
 grep -q -- "--on-active=1s --unit=omarchy-reminder-5m-2000 .*Stand up" "$reminder_tmp/runs" ||
   fail "restore fires an overdue reminder right away with its message"
